@@ -3,9 +3,9 @@ from flask_cors import CORS
 from wumpus_agent import WumpusAgent
 
 app = Flask(__name__)
-CORS(app)  # Enable Cross-Origin requests for frontend
+CORS(app)  
 
-# Global agent instance
+
 agent = None
 
 @app.route('/', methods=['GET'])

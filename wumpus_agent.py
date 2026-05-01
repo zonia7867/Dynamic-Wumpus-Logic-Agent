@@ -10,18 +10,23 @@ class WumpusAgent:
         self.kb = KnowledgeBase()
         
         # Initialize grid state
-        self.grid = [[{'type': 'empty', 'visited': False, 'safe': False, 'breeze': False, 'stench': False} 
+        self.grid = [[{'type': 'empty', 'visited': False, 'safe': False, 'breeze': False, 'stench': False, 'glitter': False} 
                       for _ in range(cols)] for _ in range(rows)]
         
         # Place hazards randomly
         self.pit_positions = set()
         self.wumpus_position = None
+        self.gold_position = None
         self.place_hazards()
         
         # Agent position
         self.agent_pos = (0, 0)
         self.visited_cells = set()
         self.visited_cells.add(self.agent_pos)
+        
+        # Game state
+        self.has_gold = False
+        self.game_won = False
         
         # Metrics
         self.total_inferences = 0
@@ -31,7 +36,7 @@ class WumpusAgent:
         self.mark_safe(0, 0)
     
     def place_hazards(self):
-        """Randomly place wumpus and pits (not at start position 0,0)"""
+        """Randomly place wumpus, pits, and gold (not at start position 0,0)"""
         all_cells = [(r, c) for r in range(self.rows) for c in range(self.cols)]
         safe_cells = [(0, 0)]  # Start position is always safe
         available_cells = [cell for cell in all_cells if cell not in safe_cells]
@@ -39,6 +44,15 @@ class WumpusAgent:
         # Place wumpus
         self.wumpus_position = random.choice(available_cells)
         available_cells.remove(self.wumpus_position)
+        
+        # Place gold (not too close to start)
+        far_cells = [(r, c) for r, c in available_cells if abs(r) + abs(c) >= 2]
+        if far_cells:
+            self.gold_position = random.choice(far_cells)
+            available_cells.remove(self.gold_position)
+        else:
+            self.gold_position = random.choice(available_cells)
+            available_cells.remove(self.gold_position)
         
         # Place 3-5 pits
         num_pits = random.randint(3, min(5, len(available_cells)))
@@ -48,6 +62,7 @@ class WumpusAgent:
         for r, c in self.pit_positions:
             self.grid[r][c]['type'] = 'pit'
         self.grid[self.wumpus_position[0]][self.wumpus_position[1]]['type'] = 'wumpus'
+        self.grid[self.gold_position[0]][self.gold_position[1]]['type'] = 'gold'
     
     def get_adjacent_cells(self, r, c):
         """Get all adjacent cells (up, down, left, right)"""
@@ -73,6 +88,11 @@ class WumpusAgent:
         if has_stench:
             percepts.append('stench')
             self.grid[r][c]['stench'] = True
+        
+        # Check for glitter (on gold)
+        if (r, c) == self.gold_position:
+            percepts.append('glitter')
+            self.grid[r][c]['glitter'] = True
         
         return percepts
     
@@ -141,6 +161,11 @@ class WumpusAgent:
             self.visited_cells.add(self.agent_pos)
             self.moves_made += 1
             
+            # Check for gold
+            if self.agent_pos == self.gold_position and not self.has_gold:
+                self.has_gold = True
+                self.game_won = True
+            
             # Perceive at new location
             percepts = self.perceive(new_r, new_c)
             self.add_percept_rules(new_r, new_c, percepts)
@@ -173,7 +198,9 @@ class WumpusAgent:
                     'safe': self.grid[r][c]['safe'],
                     'breeze': self.grid[r][c]['breeze'],
                     'stench': self.grid[r][c]['stench'],
-                    'is_agent': self.agent_pos == (r, c)
+                    'glitter': self.grid[r][c]['glitter'],
+                    'is_agent': self.agent_pos == (r, c),
+                    'has_gold': self.has_gold and self.agent_pos == (r, c)
                 }
                 row.append(cell_info)
             grid_state.append(row)
@@ -187,6 +214,8 @@ class WumpusAgent:
             percepts.append('breeze')
         if self.grid[r][c]['stench']:
             percepts.append('stench')
+        if self.grid[r][c]['glitter']:
+            percepts.append('glitter')
         
         return {
             'agent_position': self.agent_pos,
@@ -195,7 +224,9 @@ class WumpusAgent:
             'current_percepts': percepts,
             'visited_cells': len(self.visited_cells),
             'num_safe_cells': sum(1 for r in range(self.rows) for c in range(self.cols) if self.grid[r][c]['safe']),
-            'num_clauses_in_kb': len(self.kb.clauses)
+            'num_clauses_in_kb': len(self.kb.clauses),
+            'has_gold': self.has_gold,
+            'game_won': self.game_won
         }
     
     def reset(self, rows, cols):

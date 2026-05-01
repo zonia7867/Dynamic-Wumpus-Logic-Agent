@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wumpus World - Logic Agent</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1> Wumpus World - Dynamic Logic Agent</h1>
+            <p class="subtitle">Knowledge-Based Agent with Propositional Logic & Resolution Refutation</p>
+            <p class="subtitle" style="font-size: 0.9em; margin-top: 5px;"> Goal: Find the gold (💰) while avoiding pits and the wumpus using logic!</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="content">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <h2>Game Controls</h2>
+                
+                <div class="control-group">
+                    <label for="gridRows">Grid Rows:</label>
+                    <input type="number" id="gridRows" min="3" max="10" value="5">
+                    
+                    <label for="gridCols">Grid Columns:</label>
+                    <input type="number" id="gridCols" min="3" max="10" value="5">
+                    
+                    <button id="btnInit" class="btn btn-primary">Initialize Game</button>
+                    <button id="btnReset" class="btn btn-secondary">Reset Game</button>
+                </div>
+                
+                <div class="control-group">
+                    <button id="btnAutoMove" class="btn btn-success">Auto Move (Next Safe Cell)</button>
+                    <button id="btnGetSafeMoves" class="btn btn-info">Show Safe Moves</button>
+                </div>
+
+                <div class="info-box">
+                    <p><strong>Instructions:</strong></p>
+                    <ul>
+                        <li>Click on adjacent gray (unvisited) cells to move</li>
+                        <li>Green cells are safe, find the gold (💰) to win!</li>
+                        <li>Use Auto Move to let the agent explore automatically</li>
+                        <li>Agent uses logic to avoid pits and wumpus</li>
+                        <li>Watch inference steps increase as it reasons</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Grid Display -->
+            <div class="grid-section">
+                <h2>Game Grid</h2>
+                <div id="gameGrid" class="game-grid"></div>
+            </div>
+
+            <!-- Metrics Dashboard -->
+            <div class="metrics-panel">
+                <h2>Metrics Dashboard</h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Agent Position</div>
+                        <div class="metric-value" id="agentPos">-</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Moves Made</div>
+                        <div class="metric-value" id="moveCount">0</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Inference Steps</div>
+                        <div class="metric-value" id="inferenceCount">0</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Safe Cells Discovered</div>
+                        <div class="metric-value" id="safeCellCount">1</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Visited Cells</div>
+                        <div class="metric-value" id="visitedCount">1</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Game Status</div>
+                        <div class="metric-value" id="gameStatus">Exploring</div>
+                    </div>
+                </div>
+
+                <div class="percepts-box">
+                    <h3>Current Percepts</h3>
+                    <div id="perceptsList" class="percepts-list">
+                        <span class="percept-none">None (Safe)</span>
+                    </div>
+                </div>
+
+                <div class="safe-moves-box">
+                    <h3>Available Safe Moves</h3>
+                    <div id="safeMovesList" class="safe-moves-list">
+                        <p class="info-text">Initialize game to see available moves</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <h3>Legend</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #90EE90;"></div>
+                    <span>Safe Cell</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #D3D3D3;"></div>
+                    <span>Unvisited Cell</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FF6B6B;"></div>
+                    <span>Hazard (Pit/Wumpus)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FFD700;"></div>
+                    <span>Gold (💰) - Find to win!</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FFD700;"></div>
+                    <span>Agent (🤖) - You control</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #87CEEB;"></div>
+                    <span>Breeze/Stench</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span id="statusMessage">Ready to start. Initialize game with chosen dimensions.</span>
+            <span style="float: right; cursor: pointer;" onclick="showConfigModal()" title="Configure backend API">⚙️ Config</span>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameOverModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div id="modalTitle" class="modal-title win">🎉 You Win!</div>
+                </div>
+                <div id="modalMessage" class="modal-message">
+                    You found the gold!
+                </div>
+                <div class="modal-stats">
+                    <div class="stat-line">
+                        <span class="stat-label">Moves Made:</span>
+                        <span class="stat-value" id="finalMoves">0</span>
+                    </div>
+                    <div class="stat-line">
+                        <span class="stat-label">Inference Steps:</span>
+                        <span class="stat-value" id="finalInferences">0</span>
+                    </div>
+                    <div class="stat-line">
+                        <span class="stat-label">Safe Cells Discovered:</span>
+                        <span class="stat-value" id="finalSafeCells">0</span>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn modal-btn-primary" onclick="newGame()">Play Again</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config Modal -->
+        <div id="configModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title" style="color: #2563eb;">⚙️ Backend Configuration</div>
+                </div>
+                <div class="modal-message">
+                    Set your backend API URL for deployment
+                </div>
+                <div style="margin-top: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Backend URL:</label>
+                    <input 
+                        type="text" 
+                        id="configBackendUrl" 
+                        placeholder="https://your-backend.railway.app"
+                        style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 0.9em;"
+                    >
+                    <div style="font-size: 0.85em; color: #666; margin-top: 8px;">
+                        Leave empty to use localhost:5000
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn modal-btn-primary" onclick="saveBackendConfig()">Save</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="closeConfigModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

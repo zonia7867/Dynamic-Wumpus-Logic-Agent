@@ -1,0 +1,237 @@
+<!-- config.html - Quick configuration for deployed backend -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wumpus Agent - Backend Configuration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .config-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        
+        .info-box {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0891b2;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .helper-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+        
+        .btn-save {
+            background: linear-gradient(135deg, #2563eb, #0891b2);
+            color: white;
+        }
+        
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+        
+        .btn-go {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .btn-go:hover {
+            background: #15803d;
+            transform: translateY(-2px);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .status.success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+            display: block;
+        }
+        
+        .status.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            display: block;
+        }
+        
+        .example {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-family: monospace;
+            font-size: 0.85em;
+            word-break: break-all;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="config-container">
+        <h1>🎮 Wumpus Agent</h1>
+        <p class="subtitle">Backend Configuration</p>
+        
+        <div class="info-box">
+            <strong>ℹ️ Info:</strong> Set your deployed backend API URL here. This will be saved in your browser's local storage.
+        </div>
+        
+        <form id="configForm" onsubmit="saveConfig(event)">
+            <div class="form-group">
+                <label for="backendUrl">Backend API URL:</label>
+                <input 
+                    type="url" 
+                    id="backendUrl" 
+                    placeholder="https://your-backend.railway.app"
+                    required
+                >
+                <div class="helper-text">
+                    <strong>Examples:</strong>
+                    <div class="example">https://wumpus-backend-prod.railway.app</div>
+                    <div class="example">https://wumpus-api.onrender.com</div>
+                    <div class="example">http://localhost:5000</div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn-save">💾 Save</button>
+                <button type="button" class="btn-go" onclick="goToGame()">🚀 Go to Game</button>
+            </div>
+        </form>
+        
+        <div id="status" class="status"></div>
+    </div>
+    
+    <script>
+        // Load saved URL on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = sessionStorage.getItem('BACKEND_URL');
+            if (saved) {
+                document.getElementById('backendUrl').value = saved;
+            }
+        });
+        
+        function saveConfig(event) {
+            event.preventDefault();
+            
+            const url = document.getElementById('backendUrl').value.trim();
+            const statusEl = document.getElementById('status');
+            
+            // Basic validation
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                statusEl.textContent = '❌ Error: URL must start with http:// or https://';
+                statusEl.className = 'status error';
+                return;
+            }
+            
+            try {
+                // Store in sessionStorage (persists during session)
+                sessionStorage.setItem('BACKEND_URL', url);
+                
+                statusEl.textContent = '✅ Backend URL saved! You can now go to the game.';
+                statusEl.className = 'status success';
+                
+                // Auto-redirect after 2 seconds
+                setTimeout(() => {
+                    goToGame();
+                }, 2000);
+            } catch (error) {
+                statusEl.textContent = '❌ Error saving configuration: ' + error.message;
+                statusEl.className = 'status error';
+            }
+        }
+        
+        function goToGame() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

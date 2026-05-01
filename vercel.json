@@ -1,0 +1,7 @@
+{
+  "buildCommand": "echo 'Static site - no build needed'",
+  "outputDirectory": "frontend",
+  "env": {
+    "REACT_APP_API_URL": "@api_url"
+  }
+}
